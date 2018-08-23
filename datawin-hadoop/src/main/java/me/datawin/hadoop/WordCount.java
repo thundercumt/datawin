@@ -4,21 +4,17 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -37,7 +33,7 @@ public class WordCount extends Configured implements Tool {
 			return -1;
 		}
 	
-		JobConf job = new JobConf(new Configuration(), WordCount.class);
+		Job job = Job.getInstance();
 		job.setJarByClass(WordCount.class);
 		job.setJobName("WordCounter");
 		
@@ -46,15 +42,11 @@ public class WordCount extends Configured implements Tool {
 	
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(IntWritable.class);
-		job.setOutputFormat(TextOutputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
 		job.setMapperClass(WordCountMapper.class);
 		job.setReducerClass(WordCountReducer.class);
-	
-		RunningJob run = JobClient.runJob(job);
-		run.waitForCompletion();
-		System.out.println(run.isSuccessful());
-		int ret = run.isSuccessful() ? 0 : 1;
-		System.out.println("job.isSuccessful " + run.isSuccessful());
+		int ret = job.waitForCompletion(true) ? 0 : 1;
+		System.out.println("job.isSuccessful " + ret);
 		return ret;
 	}
 	
