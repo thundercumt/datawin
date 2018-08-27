@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+   db:
+     image: mysql:5.7
+     volumes:
+       - mining_data:/var/lib/mysql
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: pass
+       MYSQL_DATABASE: test
+       MYSQL_USER: miner
+       MYSQL_PASSWORD: pass
+     ports:
+       - 3306:3306
+
+volumes:
+    mining_data:
