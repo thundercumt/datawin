@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import sys
 import pymysql
 
-class dao(object):
+class Dao(object):
 
     def __init__(self):
         self.db = pymysql.connect(host='127.0.0.1',
@@ -12,26 +13,34 @@ class dao(object):
                                   port=3306,
                                   charset='utf8mb4')
 
-    def fun(self):
+    def load_all(self):
         cursor = self.db.cursor()
         sql = "select * from fc_project_tags"
         try:
-            cursor.execute(sql)
-
+            count = cursor.execute(sql)
+            ret = []
             results = cursor.fetchall()
-            print("project_id", "tag_name")
-            # 遍历结果
             for row in results:
-                project_id = row[0]
-                tag_name = row[1]
-                print(project_id, tag_name)
+                ret.append(row)
+            print("occupied %d bytes" % (sys.getsizeof(ret),))
+            return ret
         except Exception as e:
             raise e
         finally:
             self.db.close()
 
 
+class AssociationRule(object):
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    def apriori_fn(self):
+        pass
+
 
 if __name__ == '__main__':
-    db = dao()
-    db.fun()
+    db = Dao()
+    data = db.load_all()
+    ar = AssociationRule(data)
+    ar.apriori_fn()
