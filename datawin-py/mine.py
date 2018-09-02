@@ -4,6 +4,13 @@ import sys
 import itertools
 import pymysql
 
+"""
+toDos:
+    1 reduce next candidate as per the closure rule.
+    2 calculate confidence and added_value and final association rules
+    3 *** optimize apriori algorithm further
+"""
+
 class Dao(object):
 
     def __init__(self):
@@ -16,7 +23,7 @@ class Dao(object):
 
     def load_all(self):
         cursor = self.db.cursor()
-        sql = "select * from fc_project_tags limit 1000000 offset 0 "
+        sql = "select * from fc_project_tags limit 100000 offset 0 "
         try:
             count = cursor.execute(sql)
             ret = []
@@ -37,6 +44,9 @@ class AssociationRule(object):
         self.rows = rows
 
     def process_dataset(self):
+        """
+        :return: (tags[tag_name => count], projects[id => set()])
+        """
         a = dict()
         b = dict()
         for r in self.rows:
@@ -49,9 +59,22 @@ class AssociationRule(object):
             else:
                 b[r[1]] += 1
 
-        return b, {k: tuple(v) for k, v in a.items()}
+        # frozenset can be used as a hash key
+        return b, {k: frozenset(v) for k, v in a.items()}
 
-    def support_set(data, cand_set, kth, min_support):
+    def frequent_item_set(self, data, cand_set, kth, min_support):
+        """
+        Calculates the kth frequent item set.
+        :param data: input data to scan on each iteration in the format of {id => set(tags)}
+        :param cand_set: candidate set in the format of set(tag1, tag2, tag3, ...)
+        :param kth: the kth iteration
+        :param min_support: threshold minimum support in integer representation
+        :return: (
+            kth frequent item set in the format of { set(...) => count },
+            next candidates of set(tag1, tag2, ...),
+            next smaller input data {id => set(tags)}
+        )
+        """
         d = dict()
         next_cand_set = set()
         next_data = dict()
@@ -71,7 +94,7 @@ class AssociationRule(object):
                             d[c] = 1
 
                 else:
-                    if set(c).issubset(v):
+                    if v.issuperset(c):
                         if c in d:
                             d[c] += 1
                         else:
@@ -87,6 +110,12 @@ class AssociationRule(object):
         return {k: v for k, v in d.items() if v > min_support}, next_cand_set, next_data
 
     def apriori(self, support=0.05):
+        """
+        basic apriori algorithm
+        :param support: min support in fraction, defaults to 0.05
+        :return: None, only frequent item set are calculated for now.
+        """
+
         tags, projects = self.process_dataset()
         min_support = int(support * len(projects))
 
@@ -96,7 +125,7 @@ class AssociationRule(object):
         next_data = projects
         kth = 1
         while True:
-            item_set, cands, next_data = AssociationRule.support_set(next_data, cands, kth, min_support)
+            item_set, cands, next_data = self.frequent_item_set(next_data, cands, kth, min_support)
             if len(cands) == 0:
                 break
 
